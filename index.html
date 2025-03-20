@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Altın ve PAXG Fiyat Takip Sitesi</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 90%;
+            max-width: 900px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .price-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .price-box {
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .price-box h2 {
+            font-size: 1.2em;
+            color: #34495e;
+            margin: 0 0 10px;
+        }
+        .price-box p {
+            font-size: 1.5em;
+            color: #e74c3c;
+            margin: 0;
+        }
+        .timestamp {
+            text-align: center;
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Altın ve PAXG Fiyat Takip</h1>
+        <div class="price-grid">
+            <div class="price-box">
+                <h2>PAXG/USDT (Binance)</h2>
+                <p id="paxg-price">Yükleniyor...</p>
+            </div>
+            <div class="price-box">
+                <h2>Altın Fiyatı (XAU/USD)</h2>
+                <p id="gold-price">Yükleniyor...</p>
+            </div>
+            <div class="price-box">
+                <h2>USDT/TRY (Binance)</h2>
+                <p id="usdt-try">Yükleniyor...</p>
+            </div>
+            <div class="price-box">
+                <h2>USD/TRY (TCMB)</h2>
+                <p id="usd-try">Yükleniyor...</p>
+            </div>
+        </div>
+        <div class="timestamp" id="timestamp">Son güncelleme: Yükleniyor...</div>
+    </div>
+
+    <script>
+        // MetalpriceAPI için API anahtarı (kendi anahtarını buraya ekle)
+        const metalpriceApiKey = 'BURAYA_API_ANAHTARINI_EKLE'; // https://metalpriceapi.com/ adresinden al
+
+        // Binance PAXG/USDT Fiyatı
+        async function getPaxgPrice() {
+            try {
+                const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT');
+                const data = await response.json();
+                document.getElementById('paxg-price').innerText = `${parseFloat(data.price).toFixed(2)} USDT`;
+            } catch (error) {
+                document.getElementById('paxg-price').innerText = 'Hata: Veri alınamadı';
+            }
+        }
+
+        // MetalpriceAPI ile Altın Fiyatı (XAU/USD)
+        async function getGoldPrice() {
+            try {
+                const response = await fetch(`https://api.metalpriceapi.com/v1/latest?api_key=${metalpriceApiKey}&base=XAU&currencies=USD`);
+                const data = await response.json();
+                if (data.success) {
+                    const goldPrice = (1 / data.rates.USDXAU).toFixed(2); // Ons başına USD
+                    document.getElementById('gold-price').innerText = `${goldPrice} USD`;
+                } else {
+                    throw new Error('API hatası');
+                }
+            } catch (error) {
+                document.getElementById('gold-price').innerText = 'Hata: Veri alınamadı';
+            }
+        }
+
+        // Binance USDT/TRY Fiyatı
+        async function getUsdtTryPrice() {
+            try {
+                const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTTRY');
+                const data = await response.json();
+                document.getElementById('usdt-try').innerText = `${parseFloat(data.price).toFixed(2)} TRY`;
+            } catch (error) {
+                document.getElementById('usdt-try').innerText = 'Hata: Veri alınamadı';
+            }
+        }
+
+        // TCMB USD/TRY Kuru
+        async function getUsdTryPrice() {
+            try {
+                const response = await fetch('https://www.tcmb.gov.tr/kurlar/today.xml');
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+                const usdRate = xmlDoc.getElementsByTagName("ForexSelling")[0].childNodes[0].nodeValue;
+                document.getElementById('usd-try').innerText = `${parseFloat(usdRate).toFixed(4)} TRY`;
+            } catch (error) {
+                document.getElementById('usd-try').innerText = 'Hata: Veri alınamadı';
+            }
+        }
+
+        // Son güncelleme zamanını göster
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('timestamp').innerText = `Son güncelleme: ${now.toLocaleString('tr-TR')}`;
+        }
+
+        // Tüm verileri yükle
+        async function loadAllData() {
+            await Promise.all([
+                getPaxgPrice(),
+                getGoldPrice(),
+                getUsdtTryPrice(),
+                getUsdTryPrice()
+            ]);
+            updateTimestamp();
+        }
+
+        // İlk yükleme
+        loadAllData();
+
+        // Her 10 saniyede bir yenile
+        setInterval(loadAllData, 10000);
+    </script>
+</body>
+</html>
